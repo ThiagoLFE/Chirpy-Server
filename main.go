@@ -1,18 +1,33 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github/ThiagoLFE/Chirpy-Server/internal/database"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 	"sync/atomic"
+
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
 type apiConfig struct {
 	fileserverHits atomic.Int32
+	q              *database.Queries
 }
 
 func main() {
+	godotenv.Load()
+	dbURL := os.Getenv("DB_URL")
+
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		panic(err)
+	}
 	mux := http.NewServeMux()
 	server := http.Server{
 		Addr:    ":8080",
@@ -21,6 +36,7 @@ func main() {
 
 	cfg := &apiConfig{
 		fileserverHits: atomic.Int32{},
+		q:              database.New(db),
 	}
 
 	mux.HandleFunc("GET /api/healthz", readinessServe)
@@ -77,11 +93,21 @@ func (c *apiConfig) handlerValidateChirp(w http.ResponseWriter, r *http.Request)
 			return
 		}
 	}
-	if len(payload.Body) <= 140 {
-		respondWithJSON(w, http.StatusOK, ValidateResponse{
-			Valid: true,
-		})
+
+	if len(payload.Body) > 140 {
+		respondWithError(w, http.StatusBadRequest, "invalid body: max length must be at most of 140 characteres.")
 		return
 	}
-	respondWithError(w, http.StatusBadRequest, "invalid body: max length must be at most of 140 characteres.")
+
+	clearBody := make([]string, 0)
+	for _, word := range strings.Fields(payload.Body) {
+		switch strings.ToLower(word) {
+		case "fornax", "sharbert", "kerfuffle":
+			clearBody = append(clearBody, "****")
+		default:
+			clearBody = append(clearBody, word)
+		}
+	}
+
+	respondWithJSON(w, http.StatusOK, ValidateResponse{CleanedBody: strings.Join(clearBody, " ")})
 }

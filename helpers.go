@@ -15,7 +15,7 @@ type ValidateRequest struct {
 }
 
 type ValidateResponse struct {
-	Valid bool `json:"valid"`
+	CleanedBody string `json:"cleaned_body"`
 }
 
 func respondWithError(w http.ResponseWriter, statusCode int, msg string) {
