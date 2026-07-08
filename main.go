@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -25,6 +26,7 @@ func main() {
 	mux.HandleFunc("GET /api/healthz", readinessServe)
 	mux.HandleFunc("GET /admin/metrics", cfg.handlerNumberRequests)
 	mux.HandleFunc("POST /admin/reset", cfg.handlerResetCountRequests)
+	mux.HandleFunc("POST /api/validate_chirp", cfg.handlerValidateChirp)
 	mux.Handle("/app/", cfg.middlewareCountRequest(http.StripPrefix("/app", http.FileServer(http.Dir(".")))))
 
 	log.Printf("Server is running at http://localhost%s", server.Addr)
@@ -63,4 +65,23 @@ func (c *apiConfig) handlerResetCountRequests(w http.ResponseWriter, _ *http.Req
 	c.fileserverHits.Store(0)
 	w.Write(fmt.Appendf([]byte{}, "reseted hits"))
 
+}
+
+func (c *apiConfig) handlerValidateChirp(w http.ResponseWriter, r *http.Request) {
+	var payload ValidateRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		if err != nil {
+			log.Printf("Error marshalling JSON: %s", err)
+			w.WriteHeader(500)
+			return
+		}
+	}
+	if len(payload.Body) <= 140 {
+		respondWithJSON(w, http.StatusOK, ValidateResponse{
+			Valid: true,
+		})
+		return
+	}
+	respondWithError(w, http.StatusBadRequest, "invalid body: max length must be at most of 140 characteres.")
 }
