@@ -3,10 +3,14 @@ INSERT INTO users ( id, email, created_at, updated_at )
 VALUES (
     gen_random_uuid(),
     $1,
-    NOW(),
-    NOW()
+    now(),
+    now()
 )
 RETURNING *;
 
 -- name: ClearUsers :exec
 DELETE FROM users;
+
+-- name: GetUserByID :one
+SELECT * FROM users
+WHERE id = $1;
