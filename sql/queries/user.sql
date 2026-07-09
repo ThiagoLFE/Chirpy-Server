@@ -7,3 +7,6 @@ VALUES (
     NOW()
 )
 RETURNING *;
+
+-- name: ClearUsers :exec
+DELETE FROM users;
