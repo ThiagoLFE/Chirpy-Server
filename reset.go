@@ -16,5 +16,5 @@ func (c *apiConfig) handlerReset(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusBadGateway, "Fail to delete all users data: "+err.Error())
 		return
 	}
-	respondWithJSON(w, http.StatusOK, "Users deleted")
+	respondWithJSON(w, http.StatusOK, map[string]string{"status": "clear"})
 }

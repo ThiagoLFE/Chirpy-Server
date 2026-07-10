@@ -1,7 +1,9 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -44,4 +46,27 @@ func (c *apiConfig) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusCreated, data)
+}
+
+func (cfg *apiConfig) handleListUsers(w http.ResponseWriter, r *http.Request) {
+	users, err := cfg.db.ListUsers(r.Context())
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			respondWithJSON(w, http.StatusOK, map[string]string{})
+		}
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	formattedList := make([]User, 0)
+	for _, user := range users {
+		formattedList = append(formattedList, User{
+			ID:        user.ID,
+			Email:     user.Email,
+			CreatedAt: user.CreatedAt,
+			UpdatedAt: user.UpdatedAt,
+		})
+	}
+
+	respondWithJSON(w, http.StatusOK, formattedList)
 }

@@ -1,10 +1,10 @@
 info:
-  name: Create Chirp
+  name: List Chirps
   type: http
-  seq: 7
+  seq: 2
 
 http:
-  method: POST
+  method: GET
   url: http://localhost:8080/api/chirps
   auth: inherit
 

@@ -7,6 +7,7 @@ import (
 	"github/ThiagoLFE/Chirpy-Server/internal/database"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -16,7 +17,17 @@ type ChirpCmd struct {
 	UserID uuid.UUID `json:"user_id"`
 }
 
-func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request) {
+type ChirpResponse struct {
+	ID        uuid.UUID `json:"id"`
+	Body      string    `json:"body"`
+	UserID    uuid.UUID `json:"user_id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+const MaxChirpBodyLength = 140
+
+func (cfg *apiConfig) handleCreateChirp(w http.ResponseWriter, r *http.Request) {
 
 	var chirpCmd ChirpCmd
 	if err := json.NewDecoder(r.Body).Decode(&chirpCmd); err != nil {
@@ -27,6 +38,10 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 	chirpBody := strings.TrimSpace(chirpCmd.Body)
 	if len(chirpBody) == 0 {
 		respondWithError(w, http.StatusBadRequest, "body is required")
+		return
+	}
+	if len(chirpBody) > MaxChirpBodyLength {
+		respondWithError(w, http.StatusBadRequest, "body is too large, max of 140 characters")
 		return
 	}
 
@@ -51,5 +66,35 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, chirp)
+	respondWithJSON(w, http.StatusCreated, ChirpResponse{
+		ID:        chirp.ID,
+		Body:      chirp.Body,
+		UserID:    chirp.UserID,
+		CreatedAt: chirp.CreatedAt,
+		UpdatedAt: chirp.UpdatedAt,
+	})
+}
+
+func (cfg *apiConfig) handleListChirps(w http.ResponseWriter, r *http.Request) {
+	chirps, err := cfg.db.ListChirps(r.Context())
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			respondWithJSON(w, http.StatusOK, map[string]string{})
+		}
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	formattedList := make([]ChirpResponse, 0)
+	for _, chirp := range chirps {
+		formattedList = append(formattedList, ChirpResponse{
+			ID:        chirp.ID,
+			Body:      chirp.Body,
+			UserID:    chirp.UserID,
+			CreatedAt: chirp.CreatedAt,
+			UpdatedAt: chirp.UpdatedAt,
+		})
+	}
+
+	respondWithJSON(w, http.StatusOK, formattedList)
 }
