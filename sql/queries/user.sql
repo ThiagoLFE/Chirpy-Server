@@ -1,8 +1,9 @@
 -- name: CreateUser :one
-INSERT INTO users ( id, email, created_at, updated_at )
+INSERT INTO users ( id, email, hashed_password, created_at, updated_at )
 VALUES (
     gen_random_uuid(),
     $1,
+    $2,
     now(),
     now()
 )
@@ -14,6 +15,10 @@ DELETE FROM users;
 -- name: GetUserByID :one
 SELECT * FROM users
 WHERE id = $1;
+
+-- name: GetUserByEmail :one
+SELECT * FROM users
+WHERE email = $1;
 
 -- name: ListUsers :many
 SELECT * FROM users

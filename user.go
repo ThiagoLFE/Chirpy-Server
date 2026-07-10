@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"github/ThiagoLFE/Chirpy-Server/internal/auth"
+	"github/ThiagoLFE/Chirpy-Server/internal/database"
 	"net/http"
 	"strings"
 	"time"
@@ -19,7 +21,8 @@ type UserResponse struct {
 }
 
 type UserRequest struct {
-	Email string `json:"email"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 func (c *apiConfig) handleCreateUser(w http.ResponseWriter, r *http.Request) {
@@ -30,13 +33,26 @@ func (c *apiConfig) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	email := strings.TrimSpace(userRequest.Email)
-
 	if len(email) == 0 {
 		respondWithError(w, http.StatusBadRequest, "email is required")
 		return
 	}
 
-	dbUser, err := c.db.CreateUser(r.Context(), email)
+	password := userRequest.Password
+	if len(password) < 6 {
+		respondWithError(w, http.StatusBadRequest, "password must have at least 8 characters")
+		return
+	}
+	hash, err := auth.HashPassword(password)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "fail to create a hash for password")
+		return
+	}
+
+	dbUser, err := c.db.CreateUser(r.Context(), database.CreateUserParams{
+		Email:          email,
+		HashedPassword: hash,
+	})
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "fail to create user: "+err.Error())
 		return
