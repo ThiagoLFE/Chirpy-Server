@@ -60,33 +60,33 @@ func (cfg *apiConfig) handleCreateChirp(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	chirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{Body: chirpBody, UserID: u.ID})
+	dbChirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{Body: chirpBody, UserID: u.ID})
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "fail to create chirp: "+err.Error())
 		return
 	}
 
 	respondWithJSON(w, http.StatusCreated, ChirpResponse{
-		ID:        chirp.ID,
-		Body:      chirp.Body,
-		UserID:    chirp.UserID,
-		CreatedAt: chirp.CreatedAt,
-		UpdatedAt: chirp.UpdatedAt,
+		ID:        dbChirp.ID,
+		Body:      dbChirp.Body,
+		UserID:    dbChirp.UserID,
+		CreatedAt: dbChirp.CreatedAt,
+		UpdatedAt: dbChirp.UpdatedAt,
 	})
 }
 
 func (cfg *apiConfig) handleListChirps(w http.ResponseWriter, r *http.Request) {
-	chirps, err := cfg.db.ListChirps(r.Context())
+	dbChips, err := cfg.db.ListChirps(r.Context())
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			respondWithJSON(w, http.StatusOK, map[string]string{})
+			respondWithJSON(w, http.StatusOK, []map[string]string{})
 		}
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	formattedList := make([]ChirpResponse, 0)
-	for _, chirp := range chirps {
+	for _, chirp := range dbChips {
 		formattedList = append(formattedList, ChirpResponse{
 			ID:        chirp.ID,
 			Body:      chirp.Body,
@@ -97,4 +97,30 @@ func (cfg *apiConfig) handleListChirps(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, formattedList)
+}
+
+func (cfg *apiConfig) handleGetChirp(w http.ResponseWriter, r *http.Request) {
+	pathVal := r.PathValue("id")
+	id, err := uuid.Parse(pathVal)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+
+	dbChirp, err := cfg.db.GetChirpByID(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			respondWithJSON(w, http.StatusNotFound, map[string]string{})
+			return
+		}
+		respondWithError(w, http.StatusInternalServerError, "fail to get chirp: "+err.Error())
+		return
+	}
+	respondWithJSON(w, http.StatusOK, ChirpResponse{
+		ID:        dbChirp.ID,
+		Body:      dbChirp.Body,
+		UserID:    dbChirp.UserID,
+		CreatedAt: dbChirp.CreatedAt,
+		UpdatedAt: dbChirp.UpdatedAt,
+	})
 }
