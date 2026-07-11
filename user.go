@@ -39,7 +39,7 @@ func (c *apiConfig) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	password := userRequest.Password
-	if len(password) < 6 {
+	if len(password) < 5 {
 		respondWithError(w, http.StatusBadRequest, "password must have at least 8 characters")
 		return
 	}

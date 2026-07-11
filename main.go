@@ -14,8 +14,9 @@ import (
 
 type apiConfig struct {
 	fileserverHits atomic.Int32
-	PLATFORM       string
+	platform       string
 	db             *database.Queries
+	tokenSecret    string
 }
 
 func main() {
@@ -25,6 +26,7 @@ func main() {
 	godotenv.Load()
 	dbURL := os.Getenv("DB_URL")
 	platform := os.Getenv("PLATFORM")
+	tokenSecret := os.Getenv("TOKEN_SECRET")
 
 	if dbURL == "" {
 		log.Fatal("DB_URL must be set")
@@ -39,7 +41,8 @@ func main() {
 	apiCfg := apiConfig{
 		fileserverHits: atomic.Int32{},
 		db:             dbQueries,
-		PLATFORM:       platform,
+		platform:       platform,
+		tokenSecret:    tokenSecret,
 	}
 
 	mux := http.NewServeMux()
@@ -56,7 +59,7 @@ func main() {
 	mux.HandleFunc("POST /api/users", apiCfg.handleCreateUser)
 	mux.HandleFunc("GET /api/users", apiCfg.handleListUsers)
 
-	mux.HandleFunc("POST /api/chirps", apiCfg.handleCreateChirp)
+	mux.HandleFunc("POST /api/chirps", apiCfg.MiddlewareAuth(apiCfg.handleCreateChirp))
 	mux.HandleFunc("GET /api/chirps", apiCfg.handleListChirps)
 	mux.HandleFunc("GET /api/chirps/{id}", apiCfg.handleGetChirp)
 

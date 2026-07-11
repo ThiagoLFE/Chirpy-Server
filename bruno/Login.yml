@@ -6,7 +6,23 @@ info:
 http:
   method: POST
   url: http://localhost:8080/api/login
+  body:
+    type: json
+    data: |-
+      {
+        "email": "sweetplum@gmail.com",
+        "password": "bananaSplit",
+        "expires_in_seconds": 20000000
+      }
   auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        if (res.status === 200 && res.body.token) {
+            bru.setEnvVar("authToken", res.body.token);
+        }
 
 settings:
   encodeUrl: true

@@ -1,0 +1,4 @@
+name: chirpy
+variables:
+  - secret: true
+    name: authToken

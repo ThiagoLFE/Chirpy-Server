@@ -10,8 +10,7 @@ http:
     type: json
     data: |-
       {
-        "body": "teste",
-        "user_id": "c0321992-5d2e-41f6-a0c5-e4678826b7a9"
+        "body": "teste"
       }
   auth: inherit
 

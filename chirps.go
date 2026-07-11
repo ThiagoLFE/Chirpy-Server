@@ -13,8 +13,7 @@ import (
 )
 
 type ChirpCmd struct {
-	Body   string    `json:"body"`
-	UserID uuid.UUID `json:"user_id"`
+	Body string `json:"body"`
 }
 
 type ChirpResponse struct {
@@ -45,22 +44,13 @@ func (cfg *apiConfig) handleCreateChirp(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if len(chirpCmd.UserID) == 0 {
-		respondWithError(w, http.StatusBadRequest, "user is required")
+	userID, ok := r.Context().Value(userIDContextKey).(uuid.UUID)
+	if !ok {
+		respondWithError(w, http.StatusUnauthorized, "user not authenticated")
 		return
 	}
 
-	u, err := cfg.db.GetUserByID(r.Context(), chirpCmd.UserID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			respondWithError(w, http.StatusBadGateway, "user not exist")
-			return
-		}
-		respondWithError(w, http.StatusInternalServerError, "fail to get user: "+err.Error())
-		return
-	}
-
-	dbChirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{Body: chirpBody, UserID: u.ID})
+	dbChirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{Body: chirpBody, UserID: userID})
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "fail to create chirp: "+err.Error())
 		return

@@ -8,11 +8,22 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
+
+	"github.com/google/uuid"
 )
 
 type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email            string        `json:"email"`
+	Password         string        `json:"password"`
+	ExpiresInSeconds time.Duration `json:"expires_in_seconds"`
+}
+type LoginResponse struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Email     string    `json:"email"`
+	Token     string    `json:"token"`
 }
 
 func (cfg *apiConfig) handleLogin(w http.ResponseWriter, r *http.Request) {
@@ -50,10 +61,22 @@ func (cfg *apiConfig) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, UserResponse{
+	if loginRequest.ExpiresInSeconds.String() == "0s" {
+		loginRequest.ExpiresInSeconds = time.Duration(3600) // seconds to be an hour
+	}
+
+	token, err := auth.MakeJWT(user.ID, cfg.tokenSecret, loginRequest.ExpiresInSeconds*time.Second)
+	if err != nil {
+		log.Printf("fail to make JWT token: %v", err)
+		respondWithError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, LoginResponse{
 		ID:        user.ID,
 		Email:     user.Email,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
+		Token:     token,
 	})
 }

@@ -7,7 +7,7 @@ import (
 func (c *apiConfig) handlerReset(w http.ResponseWriter, r *http.Request) {
 	c.fileserverHits.Store(0)
 
-	if c.PLATFORM != "dev" {
+	if c.platform != "dev" {
 		respondWithError(w, http.StatusForbidden, "Permission denied, you haven't permission to do this")
 		return
 	}
