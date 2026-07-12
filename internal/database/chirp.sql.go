@@ -107,3 +107,38 @@ func (q *Queries) ListChirps(ctx context.Context) ([]Chirp, error) {
 	}
 	return items, nil
 }
+
+const listChirpsFromUserID = `-- name: ListChirpsFromUserID :many
+SELECT id, body, user_id, created_at, updated_at FROM chirps
+WHERE id = $1
+ORDER BY created_at ASC
+`
+
+func (q *Queries) ListChirpsFromUserID(ctx context.Context, id uuid.UUID) ([]Chirp, error) {
+	rows, err := q.db.QueryContext(ctx, listChirpsFromUserID, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Chirp
+	for rows.Next() {
+		var i Chirp
+		if err := rows.Scan(
+			&i.ID,
+			&i.Body,
+			&i.UserID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

@@ -7,6 +7,7 @@ import (
 	"github/ThiagoLFE/Chirpy-Server/internal/database"
 	"log"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -67,14 +68,38 @@ func (cfg *apiConfig) handleCreateChirp(w http.ResponseWriter, r *http.Request) 
 }
 
 func (cfg *apiConfig) handleListChirps(w http.ResponseWriter, r *http.Request) {
-	dbChips, err := cfg.db.ListChirps(r.Context())
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			respondWithJSON(w, http.StatusOK, []map[string]string{})
+
+	var dbChips []database.Chirp
+	var err error
+	authorID := r.URL.Query().Get("author_id")
+	sortParam := r.URL.Query().Get("sort")
+	if authorID == "" {
+		dbChips, err = cfg.db.ListChirps(r.Context())
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				respondWithJSON(w, http.StatusOK, []map[string]string{})
+				return
+			}
+			log.Printf("fail to list chirps: %v", err)
+			respondWithError(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
-		respondWithError(w, http.StatusInternalServerError, err.Error())
-		return
+	} else {
+		userID, err := uuid.Parse(authorID)
+		if err != nil {
+			respondWithError(w, http.StatusBadGateway, "invalid author id")
+			return
+		}
+
+		dbChips, err = cfg.db.ListChirpsFromUserID(r.Context(), userID)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				respondWithJSON(w, http.StatusOK, []map[string]string{})
+				return
+			}
+			respondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 	}
 
 	formattedList := make([]ChirpResponse, 0)
@@ -88,6 +113,11 @@ func (cfg *apiConfig) handleListChirps(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	if strings.ToLower(sortParam) == "desc" {
+		sort.Slice(formattedList, func(i, j int) bool { return formattedList[i].CreatedAt.After(formattedList[j].CreatedAt) })
+		respondWithJSON(w, http.StatusOK, formattedList)
+		return
+	}
 	respondWithJSON(w, http.StatusOK, formattedList)
 }
 
