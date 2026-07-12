@@ -15,10 +15,11 @@ import (
 )
 
 type UserResponse struct {
-	ID        uuid.UUID `json:"id"`
-	Email     string    `json:"email"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID          uuid.UUID `json:"id"`
+	Email       string    `json:"email"`
+	IsChirpyRed bool      `json:"is_chirpy_red"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type UserRequest struct {
@@ -60,10 +61,11 @@ func (c *apiConfig) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := UserResponse{
-		ID:        dbUser.ID,
-		Email:     dbUser.Email,
-		CreatedAt: dbUser.CreatedAt,
-		UpdatedAt: dbUser.UpdatedAt,
+		ID:          dbUser.ID,
+		Email:       dbUser.Email,
+		IsChirpyRed: dbUser.IsChirpyRed,
+		CreatedAt:   dbUser.CreatedAt,
+		UpdatedAt:   dbUser.UpdatedAt,
 	}
 
 	respondWithJSON(w, http.StatusCreated, data)
@@ -82,10 +84,11 @@ func (cfg *apiConfig) handleListUsers(w http.ResponseWriter, r *http.Request) {
 	formattedList := make([]UserResponse, 0)
 	for _, dbUsers := range dbUsers {
 		formattedList = append(formattedList, UserResponse{
-			ID:        dbUsers.ID,
-			Email:     dbUsers.Email,
-			CreatedAt: dbUsers.CreatedAt,
-			UpdatedAt: dbUsers.UpdatedAt,
+			ID:          dbUsers.ID,
+			Email:       dbUsers.Email,
+			IsChirpyRed: dbUsers.IsChirpyRed,
+			CreatedAt:   dbUsers.CreatedAt,
+			UpdatedAt:   dbUsers.UpdatedAt,
 		})
 	}
 
@@ -143,9 +146,10 @@ func (cfg *apiConfig) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, UserResponse{
-		ID:        updatedUserDB.ID,
-		Email:     updatedUserDB.Email,
-		CreatedAt: updatedUserDB.CreatedAt,
-		UpdatedAt: updatedUserDB.UpdatedAt,
+		ID:          updatedUserDB.ID,
+		Email:       updatedUserDB.Email,
+		IsChirpyRed: updatedUserDB.IsChirpyRed,
+		CreatedAt:   updatedUserDB.CreatedAt,
+		UpdatedAt:   updatedUserDB.UpdatedAt,
 	})
 }
