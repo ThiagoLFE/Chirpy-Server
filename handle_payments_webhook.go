@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"github/ThiagoLFE/Chirpy-Server/internal/auth"
 	"log"
 	"net/http"
 
@@ -18,8 +19,18 @@ type PaymentWebHookRequest struct {
 }
 
 func (cfg *apiConfig) handlePaymentsWebHook(w http.ResponseWriter, r *http.Request) {
-	var paymentWebHookRequest PaymentWebHookRequest
+	apiKey, err := auth.GetAPIKey(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "authorization is required")
+		return
+	}
 
+	if apiKey != cfg.polkaKey {
+		respondWithError(w, http.StatusUnauthorized, "invalid key")
+		return
+	}
+
+	var paymentWebHookRequest PaymentWebHookRequest
 	if err := json.NewDecoder(r.Body).Decode(&paymentWebHookRequest); err != nil {
 		respondWithError(w, http.StatusBadRequest, "invalid body")
 		return

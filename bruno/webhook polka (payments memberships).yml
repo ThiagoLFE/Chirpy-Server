@@ -1,0 +1,28 @@
+info:
+  name: webhook polka (payments memberships)
+  type: http
+  seq: 8
+
+http:
+  method: POST
+  url: http://localhost:8080/api/polka/webhooks
+  body:
+    type: json
+    data: |-
+      {
+        "event": "user.upgraded",
+        "data": {
+          "user_id": "3311741c-680c-4546-99f3-fc9efac2036c"
+        }
+      }
+  auth:
+    type: apikey
+    key: ApiKey
+    value: THE_KEY_HERE
+    placement: header
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
