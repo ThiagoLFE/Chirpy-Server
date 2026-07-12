@@ -11,8 +11,7 @@ http:
     data: |-
       {
         "email": "sweetplum@gmail.com",
-        "password": "bananaSplit",
-        "expires_in_seconds": 20000000
+        "password": "bananaSplit"
       }
   auth: inherit
 
@@ -20,8 +19,13 @@ runtime:
   scripts:
     - type: after-response
       code: |-
-        if (res.status === 200 && res.body.token) {
-            bru.setEnvVar("authToken", res.body.token);
+        if (
+          res.status === 200 && 
+          res.body.token && 
+          res.body.refresh_token
+        ) {
+            bru.setEnvVar("accessToken", res.body.token);
+            bru.setEnvVar("refreshToken", res.body.refresh_token);
         }
 
 settings:

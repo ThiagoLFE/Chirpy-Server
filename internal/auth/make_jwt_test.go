@@ -2,7 +2,6 @@ package auth
 
 import (
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -11,7 +10,7 @@ func TestMakeJWT(t *testing.T) {
 	tokenSecret := "paoComBananinha"
 	userID := uuid.New()
 
-	token, err := MakeJWT(userID, tokenSecret, time.Minute)
+	token, err := MakeJWT(userID, tokenSecret)
 	if err != nil {
 		t.Fatalf("MakeJWT() returned an error: %v", err)
 	}

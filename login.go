@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github/ThiagoLFE/Chirpy-Server/internal/auth"
+	"github/ThiagoLFE/Chirpy-Server/internal/database"
 	"log"
 	"net/http"
 	"strings"
@@ -14,16 +15,16 @@ import (
 )
 
 type LoginRequest struct {
-	Email            string        `json:"email"`
-	Password         string        `json:"password"`
-	ExpiresInSeconds time.Duration `json:"expires_in_seconds"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 type LoginResponse struct {
-	ID        uuid.UUID `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Email     string    `json:"email"`
-	Token     string    `json:"token"`
+	ID           uuid.UUID `json:"id"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+	Email        string    `json:"email"`
+	Token        string    `json:"token"`
+	RefreshToken string    `json:"refresh_token"`
 }
 
 func (cfg *apiConfig) handleLogin(w http.ResponseWriter, r *http.Request) {
@@ -61,11 +62,20 @@ func (cfg *apiConfig) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if loginRequest.ExpiresInSeconds.String() == "0s" {
-		loginRequest.ExpiresInSeconds = time.Duration(3600) // seconds to be an hour
+	refresh_token := auth.MakeRefreshToken()
+	_, err = cfg.db.CreateRefreshToken(r.Context(), database.CreateRefreshTokenParams{
+		Token:     refresh_token,
+		UserID:    user.ID,
+		ExpiresAt: time.Now().AddDate(0, 0, 60), //token lasts 60 days
+	})
+
+	if err != nil {
+		log.Printf("Fail to create refresh token on db: %v", err)
+		respondWithError(w, http.StatusInternalServerError, "internal server error")
+		return
 	}
 
-	token, err := auth.MakeJWT(user.ID, cfg.tokenSecret, loginRequest.ExpiresInSeconds*time.Second)
+	token, err := auth.MakeJWT(user.ID, cfg.tokenSecret)
 	if err != nil {
 		log.Printf("fail to make JWT token: %v", err)
 		respondWithError(w, http.StatusInternalServerError, "internal server error")
@@ -73,10 +83,11 @@ func (cfg *apiConfig) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, LoginResponse{
-		ID:        user.ID,
-		Email:     user.Email,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-		Token:     token,
+		ID:           user.ID,
+		Email:        user.Email,
+		CreatedAt:    user.CreatedAt,
+		UpdatedAt:    user.UpdatedAt,
+		Token:        token,
+		RefreshToken: refresh_token,
 	})
 }

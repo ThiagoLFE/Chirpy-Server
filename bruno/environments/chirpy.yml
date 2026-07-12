@@ -1,4 +1,6 @@
 name: chirpy
 variables:
   - secret: true
-    name: authToken
+    name: accessToken
+  - secret: true
+    name: refreshToken
