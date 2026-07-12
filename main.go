@@ -60,6 +60,7 @@ func main() {
 	mux.HandleFunc("GET /api/refresh_tokens", apiCfg.handleListRefreshTokens)
 
 	mux.HandleFunc("POST /api/users", apiCfg.handleCreateUser)
+	mux.HandleFunc("PUT /api/users", apiCfg.MiddlewareAuth(apiCfg.handleUpdateUser))
 	mux.HandleFunc("GET /api/users", apiCfg.handleListUsers)
 
 	mux.HandleFunc("POST /api/chirps", apiCfg.MiddlewareAuth(apiCfg.handleCreateChirp))

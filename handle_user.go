@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github/ThiagoLFE/Chirpy-Server/internal/auth"
 	"github/ThiagoLFE/Chirpy-Server/internal/database"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -89,4 +90,62 @@ func (cfg *apiConfig) handleListUsers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, formattedList)
+}
+
+func (cfg *apiConfig) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(userIDContextKey).(uuid.UUID)
+
+	var userRequest UserRequest
+	if err := json.NewDecoder(r.Body).Decode(&userRequest); err != nil {
+		respondWithError(w, http.StatusBadRequest, "invalid body")
+		return
+	}
+
+	email := strings.TrimSpace(userRequest.Email)
+	if len(email) == 0 {
+		respondWithError(w, http.StatusBadRequest, "email is required")
+		return
+	}
+
+	password := userRequest.Password
+	if len(password) < 5 {
+		respondWithError(w, http.StatusBadRequest, "password must have at least 8 characters")
+		return
+	}
+
+	_, err := cfg.db.GetUserByID(r.Context(), userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			respondWithError(w, http.StatusNotFound, "user not found")
+			return
+		}
+		log.Printf("fail to get user by id: %v", err)
+		respondWithError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	hashPassword, err := auth.HashPassword(password)
+	if err != nil {
+		log.Printf("to create a hash of password: %v", err)
+		respondWithError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	updatedUserDB, err := cfg.db.UpdateUser(r.Context(), database.UpdateUserParams{
+		ID:             userID,
+		Email:          email,
+		HashedPassword: hashPassword,
+	})
+	if err != nil {
+		log.Printf("fail to register update of user %s: %v", userID, err)
+		respondWithError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, UserResponse{
+		ID:        updatedUserDB.ID,
+		Email:     updatedUserDB.Email,
+		CreatedAt: updatedUserDB.CreatedAt,
+		UpdatedAt: updatedUserDB.UpdatedAt,
+	})
 }
