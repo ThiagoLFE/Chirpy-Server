@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github/ThiagoLFE/Chirpy-Server/internal/database"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -70,6 +71,7 @@ func (cfg *apiConfig) handleListChirps(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			respondWithJSON(w, http.StatusOK, []map[string]string{})
+			return
 		}
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -100,7 +102,7 @@ func (cfg *apiConfig) handleGetChirp(w http.ResponseWriter, r *http.Request) {
 	dbChirp, err := cfg.db.GetChirpByID(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			respondWithJSON(w, http.StatusNotFound, map[string]string{})
+			respondWithError(w, http.StatusNotFound, "not found")
 			return
 		}
 		respondWithError(w, http.StatusInternalServerError, "fail to get chirp: "+err.Error())
@@ -113,4 +115,39 @@ func (cfg *apiConfig) handleGetChirp(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: dbChirp.CreatedAt,
 		UpdatedAt: dbChirp.UpdatedAt,
 	})
+}
+
+func (cfg *apiConfig) handleDeleteChirp(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(userIDContextKey).(uuid.UUID)
+
+	pathVal := r.PathValue("id")
+	chirpID, err := uuid.Parse(pathVal)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+
+	chirpDB, err := cfg.db.GetChirpByID(r.Context(), chirpID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			respondWithError(w, http.StatusNotFound, "invalid id")
+			return
+		}
+		log.Printf("fail to get chirp %s: %v", chirpID, err)
+		respondWithError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	if chirpDB.UserID != userID {
+		respondWithError(w, http.StatusForbidden, "you only can delete your own chirps")
+		return
+	}
+
+	if err := cfg.db.DeleteChirpByID(r.Context(), chirpID); err != nil {
+		log.Printf("fail to delete chip %s: %v", chirpID, err)
+		respondWithError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

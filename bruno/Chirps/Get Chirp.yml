@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: http://localhost:8080/api/chirps/d13fa639-a59d-4849-bc0b-316eea0e1135
+  url: http://localhost:8080/api/chirps/c4bcd112-16bb-4109-8c4c-3c4c84ddf488
   auth: inherit
 
 settings:

@@ -1,17 +1,11 @@
 info:
-  name: Create Chirp
+  name: Delete Chirp (only your owns)
   type: http
-  seq: 3
+  seq: 4
 
 http:
-  method: POST
-  url: http://localhost:8080/api/chirps
-  body:
-    type: json
-    data: |-
-      {
-        "body": "teste3"
-      }
+  method: DELETE
+  url: http://localhost:8080/api/chirps/c4bcd112-16bb-4109-8c4c-3c4c84ddf488
   auth:
     type: bearer
     token: "{{accessToken}}"

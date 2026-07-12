@@ -1,5 +1,5 @@
 info:
-  name: Updated User (just yourself)
+  name: Updated User (only your owns)
   type: http
   seq: 3
 
@@ -11,7 +11,7 @@ http:
     data: |-
       {
         "email": "sweetplum@gmail.com",
-        "password": "bananaSplit2"
+        "password": "bananaSplit"
       }
   auth:
     type: bearer
